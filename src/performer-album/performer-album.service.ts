@@ -1,29 +1,44 @@
+/* eslint-disable prettier/prettier */
+
 import { Injectable } from '@nestjs/common';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AlbumService } from '../album/album.service';
-import { PerformerService } from '../performer/performer.service';
+import { AlbumEntity } from '../album/album.entity/album.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PerformerEntity } from '../performer/performer.entity/performer.entity';
+import { Repository } from 'typeorm';
+import { BusinessError, BusinessLogicException } from '../shared/errors/business-errors';
 
 
 @Injectable()
 export class PerformerAlbumService {
     constructor(
-        private readonly albumService: AlbumService,
-        private readonly performerService: PerformerService,
+        @InjectRepository(AlbumEntity)
+        private  albumRepository: Repository<AlbumEntity>,
+        @InjectRepository(PerformerEntity)
+        private performerRepository: Repository<PerformerEntity>
     ) {}
 
-    PerformerToAlbum(albumId: string, performerId: string): void {
-        const album = this.albumService.findOne(albumId);
-        const performer = this.performerService.findOne(performerId);
+    async addPerformerToAlbum(idAlbum: string, idPerformer: string): Promise<AlbumEntity> {
 
-        if (!album || !performer) {
-            throw new NotFoundException('Album or performer not found');
+            const album: AlbumEntity = await this.albumRepository.findOne({where: {id: idAlbum}, relations: ["performers"] });
+            const performer: PerformerEntity = await this.performerRepository.findOne({where: {id: idPerformer} });
+
+            if (!album) {
+                throw new BusinessLogicException(`The album with the given id was not found`, BusinessError.NOT_FOUND);
+            }
+
+            if (!performer) {
+                throw new BusinessLogicException(`Performer with ID ${idPerformer} not found`, BusinessError.NOT_FOUND);
+            }
+
+
+            if (album.performers.length == 3) {
+                throw new BusinessLogicException("Album can not have more than 3 performers", BusinessError.BAD_REQUEST);
+            }
+
+            album.performers.push(performer);
+
+            return await this.albumRepository.save(album);
         }
-
-        if (album.performers.length >= 3) {
-            throw new Error('Album already has maximum number of performers');
-        }
-
-        album.performers.push(performer);
-    }
+    
 }
-}
+

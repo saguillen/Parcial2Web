@@ -1,30 +1,30 @@
 /* eslint-disable prettier/prettier */
 
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { BusinessError, BusinessLogicException } from 'src/shared/errors/business-errors';
-import { Repository } from 'typeorm';
 import { TrackEntity } from './track.entity/track.entity';
-import { AlbumEntity } from 'src/album/album.entity/album.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { AlbumEntity } from '../album/album.entity/album.entity';
+import { BusinessError, BusinessLogicException } from '../shared/errors/business-errors';
+import { AlbumService } from '../album/album.service';
 
 @Injectable()
 export class TrackService {
     constructor(
         @InjectRepository(TrackEntity) 
-        private trackRepository: Repository<TrackEntity>,
-        private albumRepository: Repository<AlbumEntity>
+        private readonly trackRepository: Repository<TrackEntity>,
+        private readonly albumService: AlbumService
     ) { }
     async create(id: string, track: TrackEntity): Promise<TrackEntity> {
-        const album = await this.albumRepository.findOne({ where: { id }, relations: ["tracks", "performers"] });
+        const album: AlbumEntity = await this.albumService.findOne(id);
         if (!album) {
             throw new BusinessLogicException(`Album with ID ${id} not found`, BusinessError.NOT_FOUND);
         }
 
-        if (track.duracion <= 0 || isNaN(track.duracion)) {
+        if (track.duracion <= 0) {
             throw new BusinessLogicException("duracion must be a positive number", BusinessError.BAD_REQUEST);
         }
 
-        track.album = album;
         return await this.trackRepository.save(track);
     }
     async findAll(): Promise<TrackEntity[]> {
@@ -33,7 +33,7 @@ export class TrackService {
     }
 
     async findOne(id: string): Promise<TrackEntity> {
-        const track = await this.trackRepository.findOne({ where: { id }, relations: ["album"] });
+        const track = await this.trackRepository.findOne({ where: { id }});
 
         if (!track) {
             throw new BusinessLogicException(`track con ID ${id} no encontrado`, BusinessError.NOT_FOUND);
@@ -42,3 +42,5 @@ export class TrackService {
         return track;
     }
 }
+
+

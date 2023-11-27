@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 
-import { AlbumEntity } from 'src/album/album.entity/album.entity';
+import { AlbumEntity } from '../../album/album.entity/album.entity';
 import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()

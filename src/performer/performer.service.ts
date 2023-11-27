@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BusinessError, BusinessLogicException } from 'src/shared/errors/business-errors';
+import { BusinessError, BusinessLogicException } from '../shared/errors/business-errors';
 import { Repository } from 'typeorm';
 import { PerformerEntity} from './performer.entity/performer.entity';
 
@@ -12,10 +12,12 @@ export class PerformerService {
         @InjectRepository(PerformerEntity) 
         private performerRepository: Repository<PerformerEntity>
     ) { }
-    async create(track: PerformerEntity): Promise<PerformerEntity> {
-
-            return await this.performerRepository.save(track);
-
+    async create(performer: PerformerEntity): Promise<PerformerEntity> {
+        if (performer.descripcion.length > 100) {
+            throw new BusinessLogicException("Description must not exceed 100 characters", BusinessError.BAD_REQUEST);
+        }
+        
+        return await this.performerRepository.save(performer);
     }
     async findAll(): Promise<PerformerEntity[]> {
         return await this.performerRepository.find();
@@ -30,11 +32,4 @@ export class PerformerService {
         return performer;
     }
 
-    async delete(id: string) {
-        const performer: PerformerEntity = await this.performerRepository.findOne({where:{id}});
-        if (!performer)
-          throw new BusinessLogicException("The track with the given id was not found", BusinessError.NOT_FOUND);
-     
-        await this.performerRepository.remove(performer);
-    }
 }
